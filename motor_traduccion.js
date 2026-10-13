@@ -1,10 +1,5 @@
 
-/*
- * WAJUME - Motor inicial de traducción
- * Busca coincidencias documentadas en los CSV.
- * No inventa traducciones de palabras desconocidas.
- */
-
+/* WAJUME — Motor inicial bidireccional */
 (function () {
   "use strict";
 
@@ -16,76 +11,85 @@
       .replace(/\s+/g, " ");
   }
 
-  async function cargarCSV(archivo) {
-    const respuesta = await fetch(archivo);
-    if (!respuesta.ok) {
-      throw new Error("No se pudo cargar " + archivo);
-    }
-
-    const texto = await respuesta.text();
-    const lineas = texto.replace(/^\uFEFF/, "").split(/\r?\n/);
-    return lineas.filter(linea => linea.trim() !== "");
-  }
-
   function separarCSV(linea) {
-    const resultado = [];
+    const campos = [];
     let campo = "";
     let comillas = false;
 
     for (let i = 0; i < linea.length; i++) {
-      const caracter = linea[i];
+      const c = linea[i];
 
-      if (caracter === '"') {
+      if (c === '"') {
         if (comillas && linea[i + 1] === '"') {
           campo += '"';
           i++;
         } else {
           comillas = !comillas;
         }
-      } else if (caracter === "," && !comillas) {
-        resultado.push(campo.trim());
+      } else if (c === "," && !comillas) {
+        campos.push(campo.trim());
         campo = "";
       } else {
-        campo += caracter;
+        campo += c;
       }
     }
 
-    resultado.push(campo.trim());
-    return resultado;
+    campos.push(campo.trim());
+    return campos;
   }
 
-  function crearIndice(lineas) {
-    if (!lineas.length) return new Map();
+  async function cargarCSV(archivo) {
+    const respuesta = await fetch(archivo);
+    if (!respuesta.ok) {
+      throw new Error("No se pudo cargar " + archivo);
+    }
+
+    const texto = (await respuesta.text()).replace(/^\uFEFF/, "");
+    const lineas = texto.split(/\r?\n/).filter(l => l.trim());
+
+    if (lineas.length < 2) {
+      throw new Error("El archivo está vacío: " + archivo);
+    }
 
     const encabezados = separarCSV(lineas[0]).map(normalizar);
-    const columnas = [
-      ["wamonae", "cuiba", "palabra", "entrada", "wamonae/pi", "forma"],
-      ["espanol", "español", "significado", "traduccion", "traducción", "definicion", "definición"]
-    ];
+    const colW = encabezados.indexOf("wamonae");
+    const colE = encabezados.indexOf("espanol");
 
-    function buscarColumna(opciones, alternativa) {
-      for (const opcion of opciones) {
-        const indice = encabezados.indexOf(normalizar(opcion));
-        if (indice >= 0) return indice;
-      }
-      return alternativa;
+    if (colW < 0 || colE < 0) {
+      throw new Error(
+        "Se esperaban las columnas wamonae y espanol en " + archivo
+      );
     }
 
-    const colOrigen = buscarColumna(columnas[0], 0);
-    const colDestino = buscarColumna(columnas[1], 1);
-    const indice = new Map();
+    return lineas.slice(1).map(linea => {
+      const c = separarCSV(linea);
+      return {
+        wamonae: (c[colW] || "").trim(),
+        espanol: (c[colE] || "").trim()
+      };
+    }).filter(f => f.wamonae && f.espanol);
+  }
 
-    for (const linea of lineas.slice(1)) {
-      const campos = separarCSV(linea);
-      const origen = (campos[colOrigen] || "").trim();
-      const destino = (campos[colDestino] || "").trim();
+  function buscarCoincidencias(registros, texto, direccion) {
+    const clave = normalizar(texto);
+    const resultado = [];
 
-      if (origen && destino) {
-        indice.set(normalizar(origen), destino);
+    for (const fila of registros) {
+      const origen = direccion === "wamonae-espanol"
+        ? fila.wamonae
+        : fila.espanol;
+
+      const destino = direccion === "wamonae-espanol"
+        ? fila.espanol
+        : fila.wamonae;
+
+      if (normalizar(origen) === clave &&
+          !resultado.includes(destino)) {
+        resultado.push(destino);
       }
     }
 
-    return indice;
+    return resultado;
   }
 
   async function iniciar() {
@@ -94,32 +98,39 @@
       cargarCSV("frases_muestra.csv")
     ]);
 
-    const palabras = crearIndice(vocabulario);
-    const oraciones = crearIndice(frases);
-
     window.WajumeMotor = {
       listo: true,
 
-      traducir(texto) {
-        const clave = normalizar(texto);
+      traducir(texto, direccion) {
+        const sentido = direccion || "wamonae-espanol";
 
-        if (oraciones.has(clave)) {
+        if (
+          sentido !== "wamonae-espanol" &&
+          sentido !== "espanol-wamonae"
+        ) {
           return {
-            traduccion: oraciones.get(clave),
-            estado: "coincidencia exacta"
+            traducciones: [],
+            estado: "direccion no válida"
           };
         }
 
-        if (palabras.has(clave)) {
-          return {
-            traduccion: palabras.get(clave),
-            estado: "coincidencia exacta"
-          };
-        }
+        const resultadosFrases = buscarCoincidencias(
+          frases, texto, sentido
+        );
+
+        const resultadosPalabras = buscarCoincidencias(
+          vocabulario, texto, sentido
+        );
+
+        const resultados = resultadosFrases.length
+          ? resultadosFrases
+          : resultadosPalabras;
 
         return {
-          traduccion: "",
-          estado: "sin coincidencia verificada"
+          traducciones: resultados,
+          estado: resultados.length
+            ? "coincidencia exacta"
+            : "sin coincidencia verificada"
         };
       }
     };
