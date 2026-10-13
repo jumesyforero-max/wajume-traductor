@@ -1,0 +1,84 @@
+{
+  "proyecto": "Wajume",
+  "version": "0.1-base-gramatical",
+  "fuente_principal": "Wajume: Wamonae Pijumekopi Diwesi, Kerr y Berg, SIL International, 2018",
+  "nota": "Reglas resumidas de la gramática del PDF. No constituyen un analizador completo; validar con hablantes y revisar excepciones.",
+  "reglas": [
+    {
+      "id": "alfabeto",
+      "tipo": "ortografia",
+      "regla": "Conservar letras y combinaciones propias del alfabeto Wamonae: ae, ch, ng, ñ, sh, th, ts, ü y üü.",
+      "aplicacion": "No normalizar ü/üü a u ni eliminar diacríticos.",
+      "fuente": "Introducción, páginas impresas 10–11"
+    },
+    {
+      "id": "orden-oracion",
+      "tipo": "sintaxis",
+      "regla": "El orden preferido se describe como: tiempo, sujeto, localidad, adverbio, complemento y verbo.",
+      "aplicacion": "Usar como pauta inicial, no como regla rígida universal.",
+      "fuente": "Introducción, página impresa 14"
+    },
+    {
+      "id": "pronombres-personales",
+      "tipo": "sintaxis",
+      "regla": "Los pronombres personales casi no se usan con los verbos salvo para claridad o énfasis.",
+      "aplicacion": "No insertar automáticamente un pronombre en cada oración.",
+      "fuente": "Gramática, página impresa 505"
+    },
+    {
+      "id": "adjetivo",
+      "tipo": "sintaxis",
+      "regla": "Los adjetivos preceden a los sustantivos; la descripción indica que no suelen aparecer solos.",
+      "aplicacion": "Aplicar solo cuando la función de ambas palabras esté identificada.",
+      "fuente": "Gramática, página impresa 507"
+    },
+    {
+      "id": "adverbio",
+      "tipo": "sintaxis",
+      "regla": "Generalmente el adverbio aparece antes del verbo.",
+      "aplicacion": "Usar como pauta de orden, conservando excepciones.",
+      "fuente": "Gramática, página impresa 507"
+    },
+    {
+      "id": "plural-sustantivos",
+      "tipo": "morfologia",
+      "regla": "El diccionario describe sufijos plurales -n, -in y -ng condicionados por la terminación de la palabra; también registra otras formas plurales.",
+      "aplicacion": "No generar plural por simple concatenación sin identificar el tipo de sustantivo y las excepciones.",
+      "fuente": "Gramática, página impresa 504"
+    },
+    {
+      "id": "negacion",
+      "tipo": "morfologia-sintaxis",
+      "regla": "jopa es uno de los adverbios negativos; con verbos suele aparecer con la raíz futura y sufijos específicos según la conjugación.",
+      "aplicacion": "La negación verbal requiere conocer la conjugación; no basta con anteponer jopa a cualquier forma.",
+      "fuente": "Gramática, páginas impresas 508–509 y 514–518"
+    },
+    {
+      "id": "tiempo-verbal",
+      "tipo": "morfologia",
+      "regla": "El verbo distingue presente/pasado y futuro; el presente y el pasado no siempre se distinguen formalmente y se interpretan por contexto.",
+      "aplicacion": "No asignar tiempo pasado o presente cuando la frase no aporta contexto suficiente.",
+      "fuente": "Gramática, páginas impresas 514–518"
+    },
+    {
+      "id": "afijos",
+      "tipo": "morfologia",
+      "regla": "Los prefijos y sufijos pueden modificar el significado o la función gramatical de una raíz.",
+      "aplicacion": "Crear un inventario de afijos con sus condiciones y excepciones antes de segmentar palabras automáticamente.",
+      "fuente": "Gramática, páginas impresas 509–513; Apéndice 1, páginas impresas 747–778"
+    },
+    {
+      "id": "variacion-verbal",
+      "tipo": "morfologia",
+      "regla": "Algunos verbos cambian de forma en plural y existen cinco conjugaciones activas descritas en la gramática.",
+      "aplicacion": "Mantener las formas singulares/plurales documentadas en el léxico en vez de asumir una regla única.",
+      "fuente": "Gramática, páginas impresas 514–519 y 524"
+    }
+  ],
+  "politica_de_confianza": {
+    "entrada_exacta": "Mostrar traducción documentada y referencia de página si está disponible.",
+    "regla_aplicada": "Mostrar como traducción construida y señalar la regla aplicada.",
+    "palabra_desconocida": "Marcar como no encontrada; no inventar una equivalencia.",
+    "frase_con_ambiguedad": "Mostrar alternativas o pedir revisión de hablante competente."
+  }
+}
