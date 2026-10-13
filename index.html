@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173f35">
+<title>Wajume | Wamonae ↔ Español</title>
+<style>
+:root{--green:#173f35;--green2:#235747;--cream:#f7f7f1;--ink:#17241f;--muted:#64736b;--line:#dce5de;--white:#fff}
+*{box-sizing:border-box}body{margin:0;background:var(--cream);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+header{background:var(--green);color:#fff;padding:28px 20px;text-align:center}.logo{width:48px;height:48px;margin:0 auto 12px;border:1px solid #ffffff80;border-radius:16px;display:grid;place-items:center;font-size:27px}h1{font-size:30px;margin:0 0 8px}header p{margin:0;color:#e1eee6;font-size:14px}
+main{max-width:680px;margin:22px auto;padding:0 15px 30px}.panel{background:#fff;border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 8px 28px #173f350a}
+.langs{display:grid;grid-template-columns:1fr 48px 1fr;gap:8px;align-items:center;margin-bottom:18px}.lang,.swap{border:1px solid var(--line);border-radius:12px;padding:12px 8px;background:#fff;color:var(--ink);font-size:14px;font-weight:650}.lang.active{background:#e8f1eb;border-color:#a9c5b4;color:var(--green)}.swap{border:0;background:var(--green);color:#fff;width:42px;height:42px;border-radius:50%;font-size:21px}
+label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 8px}textarea{display:block;width:100%;min-height:140px;resize:vertical;border:1px solid var(--line);border-radius:14px;padding:14px;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:#fff}
+.actions{display:flex;gap:10px;margin-top:13px}button{cursor:pointer;font:inherit}.primary,.secondary{border-radius:12px;padding:12px 15px;font-size:15px;font-weight:700}.primary{flex:1;background:var(--green);color:#fff;border:1px solid var(--green)}.secondary{background:#fff;color:var(--green);border:1px solid var(--line)}
+.result{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}.result-head{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:750;margin-bottom:9px}#output{font-size:18px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;min-height:30px}.status{font-size:12px;color:var(--muted);margin-top:9px}.matches{margin-top:16px}.match{padding:11px 0;border-bottom:1px solid var(--line)}.word{font-weight:750}.meaning{color:var(--muted);margin-top:3px}.notice{font-size:13px;line-height:1.45;background:#f4f7f4;border-radius:12px;padding:12px;margin-top:16px}footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+</style>
+</head>
+<body>
+<header><div class="logo" aria-hidden="true">ü</div><h1>WAJUME</h1><p>Diccionario y traductor Wamonae ↔ Español</p></header>
+<main><section class="panel">
+<div class="langs" aria-label="Dirección de búsqueda">
+<button class="lang active" id="fromEs" type="button">Español</button><button class="swap" id="swap" type="button" aria-label="Cambiar dirección">⇄</button><button class="lang" id="fromWa" type="button">Wamonae</button>
+</div>
+<label id="inputLabel" for="source">ESCRIBE EN ESPAÑOL</label>
+<textarea id="source" placeholder="Escribe una palabra, una oración o un texto…"></textarea>
+<div class="actions"><button class="primary" id="translate" type="button">Buscar / traducir</button><button class="secondary" id="clear" type="button">Limpiar</button></div>
+<div class="result"><div class="result-head" id="resultLabel">Resultados en Wamonae</div><div id="output">Escribe una palabra o frase para comenzar.</div><div class="status" id="status"></div><div id="matches" class="matches"></div></div>
+<div class="notice"><strong>Importante:</strong> Wajume solo mostrará equivalencias que estén registradas en su base de datos. Si no encuentra una frase completa, señalará las palabras reconocidas sin inventar una oración en wamonae. La calidad de una traducción completa depende de incorporar frases y reglas gramaticales verificadas.</div>
+</section></main><footer>Wajume · Nuestra lengua</footer>
+<script>
+let direction='es', vocab=[], phrases=[], loaded=false;
+const $=id=>document.getElementById(id);
+const norm=s=>String(s||'').toLocaleLowerCase('es').normalize('NFC').trim().replace(/\s+/g,' ');
+function csvParse(text){
+ const rows=[]; let row=[], cell='', quoted=false;
+ for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];
+  if(c==='"'&&quoted&&n==='"'){cell+='"';i++}
+  else if(c==='"'){quoted=!quoted}
+  else if(c===','&&!quoted){row.push(cell);cell=''}
+  else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&n==='\n')i++;row.push(cell);if(row.some(v=>v.trim()))rows.push(row);row=[];cell=''}
+  else cell+=c;
+ }
+ if(cell.length||row.length){row.push(cell);rows.push(row)}
+ if(!rows.length)return [];
+ const headers=rows.shift().map(x=>norm(x));
+ return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]||'').trim()]))).filter(o=>Object.values(o).some(Boolean));
+}
+async function loadData(){
+ try{
+  const [v,p]=await Promise.all([fetch('./vocabulario.csv'),fetch('./frases.csv')]);
+  if(v.ok){const t=await v.text();vocab=csvParse(t).filter(x=>x.wamonae&&x.espanol)}
+  if(p.ok){const t=await p.text();phrases=csvParse(t).filter(x=>x.wamonae&&x.espanol)}
+  loaded=true;
+  $('status').textContent=`Base cargada: ${vocab.length} palabras y ${phrases.length} frases verificadas.`;
+ }catch(e){$('status').textContent='No se pudo cargar la base de datos. Comprueba que vocabulario.csv y frases.csv estén en el mismo repositorio que index.html.'}
+}
+function setDirection(d){
+ direction=d;
+ $('fromEs').classList.toggle('active',d==='es');$('fromWa').classList.toggle('active',d==='wa');
+ $('inputLabel').textContent=d==='es'?'ESCRIBE EN ESPAÑOL':'ESCRIBE EN WAMONAE';
+ $('source').placeholder=d==='es'?'Escribe una palabra, una oración o un texto en español…':'Escribe una palabra, una oración o un texto en wamonae…';
+ $('resultLabel').textContent=d==='es'?'Resultados en Wamonae':'Resultados en español';
+ $('output').textContent='Escribe una palabra o frase para comenzar.';$('matches').innerHTML='';
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function translate(){
+ const raw=$('source').value.trim();$('matches').innerHTML='';
+ if(!raw){$('output').textContent='Escribe el texto que quieres buscar.';return}
+ if(!loaded){$('output').textContent='La base de datos aún no se ha podido cargar.';return}
+ const srcKey=direction==='es'?'espanol':'wamonae', dstKey=direction==='es'?'wamonae':'espanol', key=norm(raw);
+ const exactPhrase=phrases.find(x=>norm(x[srcKey])===key);
+ const exactWord=vocab.find(x=>norm(x[srcKey])===key);
+ const exact=exactPhrase||exactWord;
+ if(exact){$('output').textContent=exact[dstKey];$('status').textContent=exactPhrase?'Frase registrada y verificada.':'Palabra registrada en el diccionario.';return}
+ const tokens=raw.match(/[\p{L}\p{M}üÜ]+(?:[-'][\p{L}\p{M}üÜ]+)*/gu)||[];
+ const found=[], seen=new Set();
+ for(const token of tokens){
+  const k=norm(token); if(seen.has(k))continue;seen.add(k);
+  const p=phrases.find(x=>norm(x[srcKey])===k),v=vocab.find(x=>norm(x[srcKey])===k),item=p||v;
+  if(item)found.push({source:token,target:item[dstKey],kind:p?'Frase':'Palabra'});
+ }
+ if(found.length){
+  $('output').textContent='No hay una traducción completa registrada para este texto. Estas son las coincidencias verificadas:';
+  $('matches').innerHTML=found.map(m=>`<div class="match"><div class="word">${escapeHtml(m.source)} → ${escapeHtml(m.target)}</div><div class="meaning">${m.kind} encontrada en la base</div></div>`).join('');
+  $('status').textContent=`Se reconocieron ${found.length} elemento(s). No se construyó una oración automática porque podría cambiar el significado.`;
+ }else{$('output').textContent='No se encontró una palabra o frase exacta en la base disponible.';$('status').textContent='La base todavía debe completarse con vocabulario y frases autorizadas y revisadas.'}
+}
+$('fromEs').onclick=()=>setDirection('es');$('fromWa').onclick=()=>setDirection('wa');$('swap').onclick=()=>setDirection(direction==='es'?'wa':'es');
+$('translate').onclick=translate;$('clear').onclick=()=>{$('source').value='';$('output').textContent='Escribe una palabra o frase para comenzar.';$('matches').innerHTML='';$('status').textContent=`Base cargada: ${vocab.length} palabras y ${phrases.length} frases verificadas.`};
+loadData();
+</script></body></html>
